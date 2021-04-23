@@ -11,15 +11,16 @@
 #include <motors.h>
 #include <camera/po8030.h>
 #include <chprintf.h>
+#include <sensors\VL53L0X\VL53L0X.h>
 
 #include <pi_regulator.h>
 #include <process_image.h>
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size) 
 {
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"START", 5);
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)&size, sizeof(uint16_t));
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)data, size);
+//	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"START", 5);
+//	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)&size, sizeof(uint16_t));
+//	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)data, size);
 }
 
 static void serial_start(void)
@@ -48,6 +49,8 @@ int main(void)
     //starts the camera
     dcmi_start();
 	po8030_start();
+	//start the sensors
+	VL53L0X_start();
 	//inits the motors
 	motors_init();
 
