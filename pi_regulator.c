@@ -128,7 +128,7 @@ static THD_FUNCTION(PiRegulator, arg) {
     (void)arg;
     systime_t time;
     int16_t speed = 0;
-    uint8_t mode = EXE_MODE;
+    uint8_t mode = SEARCH_MODE;
     uint8_t i=0;
     uint8_t reverse=0;
     uint8_t stop=0;
@@ -143,11 +143,8 @@ static THD_FUNCTION(PiRegulator, arg) {
 				{
 					//distance_mm is modified by VL53L0X sensors
 					distance = VL53L0X_get_dist_mm();
-					if (distance > 1000){
-						speed = MOTOR_SPEED_LIMIT;
-					}else{
-						speed = pi_regulator(distance, GOAL_DISTANCE);
-					}
+					chprintf((BaseSequentialStream *)&SD3,"Distance = %d", distance);
+					speed = pi_regulator(distance, GOAL_DISTANCE);
 					right_motor_set_speed(speed);
 					left_motor_set_speed(speed);
 					//Take back the mode in image processor Thread
@@ -195,7 +192,7 @@ static THD_FUNCTION(PiRegulator, arg) {
         				i--;
         			}
         		}
-        		chprintf((BaseSequentialStream *)&SD3," OK");
+
         		mode=SEARCH_MODE;
         	}
         }
