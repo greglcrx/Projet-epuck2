@@ -134,7 +134,7 @@ static THD_FUNCTION(PiRegulator, arg) {
 				{
 					//distance_mm is modified by VL53L0X sensors
 					distance = VL53L0X_get_dist_mm();
-					chprintf((BaseSequentialStream *)&SD3,"Distance = %d", distance);
+					//chprintf((BaseSequentialStream *)&SD3,"Distance = %d", distance);
 					speed = pi_regulator(distance, GOAL_DISTANCE);
 					right_motor_set_speed(speed);
 					left_motor_set_speed(speed);
@@ -145,6 +145,9 @@ static THD_FUNCTION(PiRegulator, arg) {
 			//Execution mode : Execute the code
         	case EXE_MODE :
         		get_tab(tab_cmd);
+        		for (int i = 0; i < MAX_CODE_LENGTH; i++ ) {
+        					chprintf((BaseSequentialStream *)&SD3,"tab %d : %d - ", i, tab_cmd[i]);
+        				}
         		while (!stop)
         		{
         			switch (tab_cmd[i]){
@@ -187,6 +190,8 @@ static THD_FUNCTION(PiRegulator, arg) {
 
         		mode=SEARCH_MODE;
         		set_mode(SEARCH_MODE);
+        		stop=0;
+        		reverse=0;
         	}
         }
 

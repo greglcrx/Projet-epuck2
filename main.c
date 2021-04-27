@@ -53,11 +53,9 @@ int main(void)
 	VL53L0X_start();
 	//inits the motors
 	motors_init();
-	//inits distance sensor
-	VL53L0X_start();
 
 	//stars the threads for the pi regulator and the processing of the image
-	//pi_regulator_start();
+	pi_regulator_start();
 	process_image_start();
 
     /* Infinite loop. */

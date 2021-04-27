@@ -162,9 +162,9 @@ void extract_code(uint8_t *buffer, uint8_t *code){
 	code[0] = VALID_CODE;
 //	uint16_t distance = VL53L0X_get_dist_mm();
 //	for (int i = 0; i < MAX_CODE_LENGTH+1; i++ ) {
-//		chprintf((BaseSequentialStream *)&SD3,"code %d : %d\n", i, code[i]);
+//		chprintf((BaseSequentialStream *)&SD3,"code %d : %d - ", i, code[i]);
 //	}
-//	chprintf((BaseSequentialStream *)&SD3,"distance : %d\n", distance);
+//	chprintf((BaseSequentialStream *)&SD3,"mode : %d - distance : %d\n", mode, distance);
 	return;
 }
 
@@ -266,6 +266,12 @@ void get_tab(uint8_t *tab){
 	}
 }
 
+void init_code(uint8_t *code){
+	for(uint8_t i = 0; i < MAX_CODE_LENGTH + 1; i++){
+		code[i] = 0;
+	}
+}
+
 static THD_WORKING_AREA(waCaptureImage, 256);
 static THD_FUNCTION(CaptureImage, arg) {
 
@@ -322,13 +328,21 @@ static THD_FUNCTION(ProcessImage, arg) {
 //			distance_cm = PXTOCM/lineWidth;
 //		}
 
+		init_code(code);
 		//search for a code in the image
 		extract_code(image, code);
+
+//		for (int i = 0; i < MAX_CODE_LENGTH+1; i++ ) {
+//			chprintf((BaseSequentialStream *)&SD3,"tab %d : %d - ", i, code[i]);
+//		}
+
 		if(code[0] && mode == SEARCH_MODE){
-			for(uint8_t i = 1; i <= MAX_CODE_LENGTH; i++){
-				code_array[i] = code[i];
+//			chprintf((BaseSequentialStream *)&SD3,"------- coucou c'est moi ------\n");
+			for(uint8_t i = 0; i < MAX_CODE_LENGTH; i++){
+				code_array[i] = code[i + 1];
 			}
 			set_mode(EXE_MODE);
+//			chprintf((BaseSequentialStream *)&SD3,"mode : %d\n", mode);
 		}
 
 		if(send_to_computer){
