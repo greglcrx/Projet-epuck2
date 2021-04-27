@@ -8,6 +8,9 @@
 
 #include <process_image.h>
 
+static uint8_t code_array[MAX_CODE_LENGTH];
+static uint8_t mode = SEARCH_MODE;
+
 static uint8_t binary_width = 40;
 static uint8_t binary_width_margin;
 static uint8_t starting_code_width;
@@ -22,13 +25,13 @@ static BSEMAPHORE_DECL(image_ready_sem, TRUE);
  *  Returns the code extracted from the image buffer given
  *  Returns 0 in first index if code not found, else returns 1 in first index
  */
-uint8_t * extract_code(uint8_t *buffer){
+void extract_code(uint8_t *buffer, uint8_t *code){
 
 	uint32_t mean = 0;
 	//variables of position of beginning and ending code (code to read is in between)
 	uint16_t starting_code = 0, ending_code = 0;
 	//variables that change during the loops
-	uint16_t begin = 0, end = 0, current_px = 0, last_code = 0;
+	uint16_t begin = 0, current_px = 0, last_code = 0;
 	uint8_t index = 1;
 	//variables to check state
 	bool found_start = false, found_end = false, found_code = false;
@@ -36,8 +39,6 @@ uint8_t * extract_code(uint8_t *buffer){
 	binary_width_margin = binary_width/4;
 	starting_code_width = binary_width*2.5;
 	ending_code_width = binary_width*3/4;
-
-	static uint8_t code[MAX_CODE_LENGTH + 1];
 
 	//performs an average
 	for(uint16_t i = 0 ; i < IMAGE_BUFFER_SIZE ; i++){
@@ -55,7 +56,6 @@ uint8_t * extract_code(uint8_t *buffer){
 		//if beginning found, looking for end
 		if(begin && buffer[current_px] < mean && buffer[current_px + WIDTH_SLOPE] > mean){
 			if((current_px - begin) > (starting_code_width - binary_width_margin) && (current_px - begin) < (starting_code_width + binary_width_margin)){
-				end = current_px;
 				found_start = true;
 				current_px += WIDTH_SLOPE - 1;
 			}
@@ -65,8 +65,8 @@ uint8_t * extract_code(uint8_t *buffer){
 
 	//check if start was found. If not return with error code[0]=0
 	if(!found_start){
-		code[0] = 0;
-		return code;
+		code[0] = END;
+		return;
 	}else{
 		starting_code = current_px;
 	}
@@ -81,7 +81,6 @@ uint8_t * extract_code(uint8_t *buffer){
 		//if beginning found, looking for end
 		if(begin && buffer[current_px] < mean && buffer[current_px + WIDTH_SLOPE] > mean){
 			if((current_px - begin) > (ending_code_width - binary_width_margin) && (current_px - begin) < (ending_code_width + binary_width_margin)){
-				end = current_px;
 				found_end = true;
 			}
 		}
@@ -90,8 +89,8 @@ uint8_t * extract_code(uint8_t *buffer){
 
 	//check if end was found. If not return with error (code[0]=0)
 	if(!found_start){
-		code[0] = 0;
-		return code;
+		code[0] = END;
+		return;
 	}else{
 		ending_code = begin;
 	}
@@ -107,12 +106,12 @@ uint8_t * extract_code(uint8_t *buffer){
 				if(buffer[current_px + WIDTH_SLOPE] < mean){
 					if(index < MAX_CODE_LENGTH){
 						//code 01
-						code[index] = 2;
+						code[index] = ADVANCE;
 						found_code = true;
 						break;
 					}else{
-						code[0] = 0;
-						return code;
+						code[0] = END;
+						return;
 					}
 				}
 				current_px++;
@@ -121,10 +120,10 @@ uint8_t * extract_code(uint8_t *buffer){
 			if(!found_code){
 				if(index < MAX_CODE_LENGTH){
 					//code 00
-					code[index] = 1;
+					code[index] = RIGHT;
 				}else{
-					code[0] = 0;
-					return code;
+					code[0] = END;
+					return;
 				}
 			}
 		}
@@ -134,12 +133,12 @@ uint8_t * extract_code(uint8_t *buffer){
 				if(buffer[current_px + WIDTH_SLOPE] > mean){
 					if(index < MAX_CODE_LENGTH){
 						//code 10
-						code[index] = 3;
+						code[index] = LEFT;
 						found_code = true;
 						break;
 					}else{
-						code[0] = 0;
-						return code;
+						code[0] = END;
+						return;
 					}
 				}
 				current_px++;
@@ -148,10 +147,10 @@ uint8_t * extract_code(uint8_t *buffer){
 			if(!found_code){
 				if(index < MAX_CODE_LENGTH){
 					//code 11
-					code[index] = 4;
+					code[index] = RETREAT;
 				}else{
-					code[0] = 0;
-					return code;
+					code[0] = END;
+					return;
 				}
 			}
 		}
@@ -160,13 +159,13 @@ uint8_t * extract_code(uint8_t *buffer){
 		current_px = last_code + 2*(binary_width + binary_width_margin);
 		last_code += 2*binary_width;
 	}
-	code[0] = 1;
-	uint16_t distance = VL53L0X_get_dist_mm();
-	for (int i = 0; i < MAX_CODE_LENGTH+1; i++ ) {
-		chprintf((BaseSequentialStream *)&SD3,"code %d : %d\n", i, code[i]);
-	}
-	chprintf((BaseSequentialStream *)&SD3,"distance : %d\n", distance);
-	return code;
+	code[0] = VALID_CODE;
+//	uint16_t distance = VL53L0X_get_dist_mm();
+//	for (int i = 0; i < MAX_CODE_LENGTH+1; i++ ) {
+//		chprintf((BaseSequentialStream *)&SD3,"code %d : %d\n", i, code[i]);
+//	}
+//	chprintf((BaseSequentialStream *)&SD3,"distance : %d\n", distance);
+	return;
 }
 
 /*
@@ -253,6 +252,20 @@ uint16_t extract_line_width(uint8_t *buffer){
 	}
 }
 
+uint8_t get_mode(void){
+	return mode;
+}
+
+void set_mode(uint8_t new_mode){
+	mode = new_mode;
+}
+
+void get_tab(uint8_t *tab){
+	for(uint8_t i = 0; i < MAX_CODE_LENGTH; i++){
+		tab[i] = code_array[i];
+	}
+}
+
 static THD_WORKING_AREA(waCaptureImage, 256);
 static THD_FUNCTION(CaptureImage, arg) {
 
@@ -284,7 +297,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 
 	uint8_t *img_buff_ptr;
 	uint8_t image[IMAGE_BUFFER_SIZE] = {0};
-	uint8_t *code = NULL;
+	uint8_t code[MAX_CODE_LENGTH + 1];
 
 	bool send_to_computer = true;
 
@@ -310,7 +323,13 @@ static THD_FUNCTION(ProcessImage, arg) {
 //		}
 
 		//search for a code in the image
-		code = extract_code(image);
+		extract_code(image, code);
+		if(code[0] && mode == SEARCH_MODE){
+			for(uint8_t i = 1; i <= MAX_CODE_LENGTH; i++){
+				code_array[i] = code[i];
+			}
+			set_mode(EXE_MODE);
+		}
 
 		if(send_to_computer){
 			//sends to the computer the image

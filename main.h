@@ -24,6 +24,7 @@ extern "C" {
 #define KI 						0.0f	//must not be zero 3.5
 #define MAX_SUM_ERROR 			(MOTOR_SPEED_LIMIT/KI)
 #define MAX_CODE_LENGTH			5
+#define VALID_CODE				1
 
 /** Robot wide IPC bus. */
 extern messagebus_t bus;
