@@ -11,9 +11,6 @@
 #include <pi_regulator.h>
 #include <process_image.h>
 
-#define SEARCH_MODE 0
-#define EXE_MODE 1
-#define MAX_CMD 15
 //#define MOTOR_SPEED_LIMIT   13 // [cm/s]
 #define NSTEP_ONE_TURN      1000 // number of step for 1 turn of the motor
 #define WHEEL_PERIMETER     13 // [cm]
@@ -21,12 +18,6 @@
 //TO ADJUST IF NECESSARY. NOT ALL THE E-PUCK2 HAVE EXACTLY THE SAME WHEEL DISTANCE
 #define WHEEL_DISTANCE      5.35f    //cm
 #define PERIMETER_EPUCK     (PI * WHEEL_DISTANCE)
-
-#define ADVANCE 0
-#define RETREAT 1
-#define RIGHT 2
-#define LEFT 3
-#define END 4
 
 #define POSITION_REACHED 1
 #define POSITION_NOT_REACHED 0
@@ -132,7 +123,7 @@ static THD_FUNCTION(PiRegulator, arg) {
     uint8_t i=0;
     uint8_t reverse=0;
     uint8_t stop=0;
-    uint8_t tab_cmd[MAX_CMD]= {ADVANCE ,LEFT ,ADVANCE ,RIGHT, RETREAT, LEFT, ADVANCE, RETREAT, END, ADVANCE, END};
+    uint8_t tab_cmd[MAX_CODE_LENGTH];
     uint16_t distance =0;
     while(1){
     	time = chVTGetSystemTime();
@@ -148,11 +139,12 @@ static THD_FUNCTION(PiRegulator, arg) {
 					right_motor_set_speed(speed);
 					left_motor_set_speed(speed);
 					//Take back the mode in image processor Thread
-	//        		mode = image_update_mode();
+	        		mode = get_mode();
 				}
 
 			//Execution mode : Execute the code
         	case EXE_MODE :
+        		get_tab(tab_cmd);
         		while (!stop)
         		{
         			switch (tab_cmd[i]){
@@ -179,7 +171,7 @@ static THD_FUNCTION(PiRegulator, arg) {
         			while(motor_position_reached() != POSITION_REACHED);
 
         			//Reversing the order of reading when it's the end
-        			if ((tab_cmd[i]==END) | ((i+1==MAX_CMD) & (!reverse))){
+        			if ((tab_cmd[i]==END) | ((i+1==MAX_CODE_LENGTH) & (!reverse))){
         				reverse=1;
         			//Stop the EXE mode when reading takes place both ways
         			}else if(reverse & ((i)==0)){
@@ -194,6 +186,7 @@ static THD_FUNCTION(PiRegulator, arg) {
         		}
 
         		mode=SEARCH_MODE;
+        		set_mode(SEARCH_MODE);
         	}
         }
 

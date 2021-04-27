@@ -23,6 +23,16 @@ extern "C" {
 #define KP						50.0f
 #define KI 						0.0f	//must not be zero 3.5
 #define MAX_SUM_ERROR 			(MOTOR_SPEED_LIMIT/KI)
+
+#define SEARCH_MODE 0
+#define EXE_MODE 1
+
+#define END 0
+#define ADVANCE 1
+#define RETREAT 2
+#define RIGHT 3
+#define LEFT 4
+
 #define MAX_CODE_LENGTH			5
 #define VALID_CODE				1
 
