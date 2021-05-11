@@ -50,12 +50,12 @@ int main(void)
     dcmi_start();
 	po8030_start();
 	//start the sensors
-	//VL53L0X_start();
-	//inits the motors
-	//motors_init();
+	VL53L0X_start();
+//	inits the motors
+	motors_init();
 
 	//stars the threads for the pi regulator and the processing of the image
-	//pi_regulator_start();
+	pi_regulator_start();
 	process_image_start();
 
     /* Infinite loop. */

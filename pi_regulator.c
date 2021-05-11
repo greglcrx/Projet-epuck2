@@ -148,34 +148,41 @@ static THD_FUNCTION(PiRegulator, arg) {
 				right_motor_set_speed(speed);
 				left_motor_set_speed(speed);
 				//Bring back the new mode in image processor Thread
-	        	mode = get_mode();
+				if (speed==0){
+					mode = get_mode();
+				}else{
+					set_mode(SEARCH_MODE);
+				}
+
+        		break;
 
 			//Execution mode : Execute the code
         	case EXE_MODE :
         		//Bring back the table of instructions
         		get_tab(tab_cmd);
+        		cnt=0;
         		//loop to decode instructions and make the action
         		while (!stop)
         		{
         			switch (tab_cmd[cnt]){
 						case ADVANCE:
 							tab_cmd[cnt]=RETREAT;
-							motor_set_position(20, 20, 7, 7);
+							motor_set_position(20, 20, 5, 5);
 							set_led(LED1,1);
 							break;
 						case RETREAT:
 							tab_cmd[cnt]=ADVANCE;
-							motor_set_position(20, 20, -7, -7);
+							motor_set_position(20, 20, -5, -5);
 							set_led(LED5,1);
 							break;
 						case RIGHT:
 							tab_cmd[cnt]=LEFT;
-							motor_set_position(PERIMETER_EPUCK/4, PERIMETER_EPUCK/4, -7, 7);
+							motor_set_position(PERIMETER_EPUCK/4, PERIMETER_EPUCK/4, -5, 5);
 							set_led(LED3,1);
 							break;
 						case LEFT:
 							tab_cmd[cnt]=RIGHT;
-							motor_set_position(PERIMETER_EPUCK/4, PERIMETER_EPUCK/4, 7, -7);
+							motor_set_position(PERIMETER_EPUCK/4, PERIMETER_EPUCK/4, 5, -5);
 							set_led(LED7,1);
 							break;
 						case END:
@@ -191,7 +198,8 @@ static THD_FUNCTION(PiRegulator, arg) {
         			if ((tab_cmd[cnt]==END) | ((cnt+1==MAX_CODE_LENGTH) & (!reverse))){
         				reverse=true;
         			//Stop the EXE mode when reading takes place both ways
-        			} else if(reverse & ((cnt)==0)){
+        			}
+        			if(reverse & ((cnt)==0)){
         				stop = true;
         			}
         			//Increment or decrement according to the order of reading
@@ -205,6 +213,7 @@ static THD_FUNCTION(PiRegulator, arg) {
         		set_mode(SEARCH_MODE);
         		stop=false;
         		reverse=false;
+        		break;
         	}
     }
 
