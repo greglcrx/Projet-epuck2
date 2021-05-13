@@ -13,8 +13,8 @@
 #include <chprintf.h>
 #include <sensors/VL53L0X/VL53L0X.h>
 
-#include <pi_regulator.h>
 #include <process_image.h>
+#include "motor_control.h"
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size)
 {
@@ -55,7 +55,7 @@ int main(void)
 	motors_init();
 
 	//stars the threads for the pi regulator and the processing of the image
-	pi_regulator_start();
+	motor_control_start();
 	process_image_start();
 
     /* Infinite loop. */

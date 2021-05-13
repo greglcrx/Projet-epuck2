@@ -6,9 +6,9 @@
 #include <main.h>
 #include <motors.h>
 #include <sensors\VL53L0X\VL53L0X.h>
-#include <pi_regulator.h>
 #include <process_image.h>
 #include <leds.h>
+#include "motor_control.h"
 
 
 #define NSTEP_ONE_TURN      1000 // number of step for 1 turn of the motor
@@ -42,7 +42,7 @@ int16_t pi_regulator(uint16_t distance, uint16_t goal){
 
 	error = distance-goal;
 	//disables the PI regulator if the error is to small
-	//this avoids to always move as we cannot exactly be where we want and 
+	//this avoids to always move as we cannot exactly be where we want and
 	//the camera is a bit noisy
 	if(fabs(error) < ERROR_THRESHOLD){
 		return 0;
@@ -118,8 +118,8 @@ uint8_t motor_position_reached(void)
 
 
 //
-static THD_WORKING_AREA(waPiRegulator, 256);
-static THD_FUNCTION(PiRegulator, arg) {
+static THD_WORKING_AREA(waMotorControl, 256);
+static THD_FUNCTION(MotorControl, arg) {
 
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
@@ -221,6 +221,6 @@ static THD_FUNCTION(PiRegulator, arg) {
     chThdSleepUntilWindowed(time, time + MS2ST(10));
 }
 
-void pi_regulator_start(void){
-	chThdCreateStatic(waPiRegulator, sizeof(waPiRegulator), NORMALPRIO, PiRegulator, NULL);
+void motor_control_start(void){
+	chThdCreateStatic(waMotorControl, sizeof(waMotorControl), NORMALPRIO, MotorControl, NULL);
 }
