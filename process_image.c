@@ -14,12 +14,22 @@ static uint8_t mode = SEARCH_MODE;
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
 
+/*
+ * Initializes an uint8_t array to zero (0)
+ * Input: Pointer to array and its length
+ * Output: None
+ */
 void init_array8(uint8_t *array, uint16_t length){
 	for(uint8_t i = 0; i < length; i++){
 		array[i] = 0;
 	}
 }
 
+/*
+ * Initializes an uint16_t array to zero (0)
+ * Input: Pointer to array and its length
+ * Output: None
+ */
 void init_array16(uint16_t *array, uint16_t length){
 	for(uint8_t i = 0; i < length; i++){
 		array[i] = 0;
@@ -27,8 +37,9 @@ void init_array16(uint16_t *array, uint16_t length){
 }
 
 /*
- *  Returns the code extracted from the image buffer given
- *  Returns 0 in first index of the array if code not found, else returns 1 in first index
+ *  Extracts the code from the image
+ *  Input: Pointer to the image buffer and the pointer to the array that has to be filled with the code
+ *  Output: None. Puts 0 in first index of the array if no code was found, else puts 1 in first index
  */
 void extract_code(uint8_t *buffer, uint8_t *code){
 
@@ -77,7 +88,8 @@ void extract_code(uint8_t *buffer, uint8_t *code){
 			slopes[slope_index] = current_px;
 			slope_index++;
 			current_px += WIDTH_SLOPE - 1;
-		}else if(buffer[current_px] < mean && buffer[current_px + WIDTH_SLOPE] > mean){
+		}
+		else if(buffer[current_px] < mean && buffer[current_px + WIDTH_SLOPE] > mean){
 			slopes[slope_index] = current_px;
 			slope_index++;
 			current_px += WIDTH_SLOPE - 1;
@@ -95,7 +107,8 @@ void extract_code(uint8_t *buffer, uint8_t *code){
 			slopes[i+1] = 0;
 		}
 	}
-	//reorganizing the slopes array (remove all zeros created while removing the noise)
+
+	//reorganizing the slopes array, i.e. remove all zeros created while removing the noise)
 	uint8_t k = 0;
 	for(uint8_t i=0; i<end; i++){
 		if(slopes[i]){
@@ -116,7 +129,8 @@ void extract_code(uint8_t *buffer, uint8_t *code){
 			if(i < (MAX_NB_SLOPES - 2) && (slopes[i+2] - slopes[i+1]) < (BINARY_WIDTH/2)){			//eliminating small white line after starting code
 				start = i+2;
 				current_slope = i+2;
-			}else{
+			}
+			else{
 				start = i+1;
 				current_slope = i+1;
 			}
@@ -133,7 +147,8 @@ void extract_code(uint8_t *buffer, uint8_t *code){
 		if((slopes[i+1] - slopes[i]) > (ENDING_CODE_WIDTH - 2*BINARY_WIDTH_MARGIN) && (slopes[i+1] - slopes[i]) < (ENDING_CODE_WIDTH + 2*BINARY_WIDTH_MARGIN)){
 			if((slopes[i] - slopes[i-1]) < (BINARY_WIDTH - 3*BINARY_WIDTH_MARGIN)){				//eliminating small white line before ending code
 				end = i-1;
-			}else{
+			}
+			else{
 				end = i;
 			}
 		}
@@ -143,13 +158,14 @@ void extract_code(uint8_t *buffer, uint8_t *code){
 		return;
 	}
 
-	//reading code
+	//reading code between start and end
 	for(uint8_t i = start; i < end; i++){
 		nb_codes = (uint8_t)(slopes[i+1]-slopes[i])/(BINARY_WIDTH-BINARY_WIDTH_MARGIN);
 		for(uint8_t j = 0; j < nb_codes; j++){
 			if(i%2){
 				codes[code_index + j] = WHITE;
-			}else{
+			}
+			else{
 				codes[code_index + j] = BLACK;
 			}
 		}
@@ -178,18 +194,40 @@ void extract_code(uint8_t *buffer, uint8_t *code){
 		}
 	}
 
-	code[0] = VALID_CODE;
+	//additional test to make sure the code is not empty
+	if(!code[1]){
+		code[0] = END;
+	}
+	else{
+		code[0] = VALID_CODE;
+	}
+
 	return;
 }
 
+/*
+ * Function that returns the mode
+ * Input: None
+ * Output: Mode
+ */
 uint8_t get_mode(void){
 	return mode;
 }
 
+/*
+ * Function to change the mode
+ * Input: The new mode that has to be set
+ * Output: None
+ */
 void set_mode(uint8_t new_mode){
 	mode = new_mode;
 }
 
+/*
+ * Function that passes the code array that has been detected
+ * Input: Pointer to array where the code has to be written to
+ * Output: None
+ */
 void get_tab(uint8_t *tab){
 	for(uint8_t i = 0; i < MAX_CODE_LENGTH; i++){
 		tab[i] = code_array[i];
@@ -229,8 +267,6 @@ static THD_FUNCTION(ProcessImage, arg) {
 	uint8_t image[IMAGE_BUFFER_SIZE] = {0};
 	uint8_t code[MAX_CODE_LENGTH + 1];
 
-	bool send_to_computer = true;
-
     while(1){
     	//waits until an image has been captured
         chBSemWait(&image_ready_sem);
@@ -250,23 +286,12 @@ static THD_FUNCTION(ProcessImage, arg) {
 		//search for a code in the image
 		extract_code(image, code);
 
-//		for (int i = 0; i < MAX_CODE_LENGTH+1; i++ ) {
-//			chprintf((BaseSequentialStream *)&SD3,"tab %d : %d - \n", i, code[i]);
-//		}
-
 		if(code[0] && mode == SEARCH_MODE){
 			for(uint8_t i = 0; i < MAX_CODE_LENGTH; i++){
 				code_array[i] = code[i + 1];
 			}
 			set_mode(EXE_MODE);
 		}
-
-		if(send_to_computer){
-			//sends to the computer the image
-			SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);
-		}
-		//invert the bool
-		send_to_computer = !send_to_computer;
     }
 }
 
